@@ -1,5 +1,9 @@
 {
-  "name": "hardhat-project",
+  "name": "DEMU",
+  "scripts": {
+    "test": "npx hardhat test",
+    "deploy": "bash scripts/deploy.sh"
+  },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.1.0",

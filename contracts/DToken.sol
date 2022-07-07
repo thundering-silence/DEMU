@@ -45,6 +45,22 @@ contract DToken is ERC20, Multicall {
         // IDemu(demu_).setMinter(address(this), true);
     }
 
+    function underlying() public view returns (IERC20) {
+        return _underlying;
+    }
+
+    function ltv() public view returns (uint256) {
+        return _ltv;
+    }
+
+    function liquidationIncentive() public view returns (uint256) {
+        return _liquidationIncentive;
+    }
+
+    function oracle() public view returns (address) {
+        return address(_oracle);
+    }
+
     /**
      * @notice Compute the maximum amount of DEMU the `account` can mint
      * @param account - account for which to compute the maxDebt
@@ -52,8 +68,8 @@ contract DToken is ERC20, Multicall {
      */
     function maxDebt(address account) public view returns (uint256) {
         uint256 collateralVal = collateralValue(account);
-        uint256 ltv = _ltv;
-        return (collateralVal * ltv) / demuPrice();
+        uint256 ltv_ = _ltv;
+        return (collateralVal * ltv_) / demuPrice();
     }
 
     /**
@@ -99,7 +115,10 @@ contract DToken is ERC20, Multicall {
      */
     function supply(uint256 amount) public {
         _underlying.safeTransferFrom(msg.sender, address(this), amount);
-        _mint(_msgSender(), amount);
+        _mint(
+            _msgSender(),
+            amount * 10**(18 - ERC20(address(_underlying)).decimals())
+        );
         // emit
     }
 
@@ -110,7 +129,11 @@ contract DToken is ERC20, Multicall {
      */
     function withdraw(uint256 amount) public {
         _burn(_msgSender(), amount);
-        _underlying.safeTransferFrom(address(this), msg.sender, amount);
+        _underlying.safeTransferFrom(
+            address(this),
+            msg.sender,
+            amount / 10**(18 - ERC20(address(_underlying)).decimals())
+        );
 
         uint256 maximum = maxDebt(_msgSender());
         require(maximum <= debt[_msgSender()], "Vault: 403");
