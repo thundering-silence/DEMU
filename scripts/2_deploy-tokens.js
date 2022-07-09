@@ -24,10 +24,14 @@ async function main() {
         `d${asset}`,
         `d${asset}`,
         process.env[asset],
-        constants.WeiPerEther.div(BigNumber.from("2")), //50%
-        constants.WeiPerEther.div(BigNumber.from("10")), // 10%
+        constants.WeiPerEther.div(BigNumber.from("2")), //50% LTV
+        constants.WeiPerEther.div(
+          BigNumber.from("10")
+        ).mul(BigNumber.from("4")), //80% liquidation threshold
+        constants.WeiPerEther.div(BigNumber.from("10")), // 10% Liquidation incentive
         process.env.ORACLE,
         process.env.DEMU,
+        process.env.FEES_COLLECTOR,
         {
           gasLimit: 30000000,
         }

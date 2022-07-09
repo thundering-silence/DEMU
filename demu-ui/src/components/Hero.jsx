@@ -13,7 +13,7 @@ const Hero = () => <section className='hero min-h-screen flex flex-col justify-c
             Unit
         </p>
         <h1 className=' text-lg lg:text-xl text-primary'>
-            DEMU - Overcollateralized EURO stablecoin backed by digital assets
+            Zero-cost over-collateralized EURO stablecoin
         </h1>
     </div>
 </section>

@@ -1,41 +1,41 @@
 import { useEffect, useState } from 'react'
 import { useContract, useSigner } from 'wagmi'
 import { constants, utils } from 'ethers'
+import { getTokenBalances, getTokenMetadata } from '@alch/alchemy-sdk'
+import alchemy from '../web3/alchemy'
 
 const tabs = ['supply', 'withdraw', 'mint', 'burn']
 
 const ActionForm = ({ underlyingAddress, tokenAddress, actions }) => {
     const { data: signer } = useSigner()
     const [selectedTab, setSelectedTab] = useState(tabs[0])
-    const [amount, setAmount] = useState('')
+    const [amount, setAmount] = useState('0')
     const [showApprove, setShowApprove] = useState(true)
     const [underlyingBalance, setUnderlyingBalance] = useState('0.0')
     const [underlyingDecimals, setUnderlyingDecimals] = useState('18')
-
-    const underlying = useContract({
-        addressOrName: underlyingAddress,
-        contractInterface: [
-            "function balanceOf(address) public view returns (uint256)",
-            "function approve(address, uint256) public",
-            "function decimals() public view returns (uint256)"
-        ],
-        signerOrProvider: signer
-    })
+    const [allowance, setAllowance] = useState()
 
     const fetchUnderlyingData = async () => {
+        const signerAddress = await signer.getAddress()
         try {
-            const bal = await underlying.balanceOf(await signer.getAddress())
-            const decimals = await underlying.decimals()
-            setUnderlyingBalance(utils.parseUnits(bal, decimals.toString()))
-            setUnderlyingDecimals(decimals.toString())
+            const { tokenBalances } = await getTokenBalances(alchemy, signerAddress, [underlyingAddress])
+            const { decimals } = await getTokenMetadata(alchemy, underlyingAddress)
+            const { result } = await alchemy.getProvider().send('alchemy_getTokenAllowance', [{
+                contract: underlyingAddress,
+                owner: signerAddress,
+                spender: tokenAddress
+            }])
+            setAllowance(result)
+            setUnderlyingBalance(utils.parseUnits(tokenBalances[0].tokenBalance, `${decimals}`))
+            setUnderlyingDecimals(`${decimals}`)
         } catch (e) { }
     }
 
 
     useEffect(() => {
-        if (!signer || underlying.address == constants.AddressZero) return;
+        if (!signer) return;
         fetchUnderlyingData()
-    }, [underlying, signer])
+    }, [underlyingAddress, signer])
 
     const handleAmountChange = e => {
         try {

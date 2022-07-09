@@ -45,11 +45,13 @@ describe("DToken", function () {
       "dWMATIC",
       process.env.WMATIC,
       constants.WeiPerEther.div(BigNumber.from("2")), //50%
+      constants.WeiPerEther.div(BigNumber.from("10")).mul(BigNumber.from("4")), //80% liquidation threshold
       constants.WeiPerEther.div(BigNumber.from("10")), // 10%
       this.oracle.address,
       this.demu.address,
+      process.env.FEES_COLLECTOR,
       {
-        gasLimit: 3000000,
+        gasLimit: 30000000,
       }
     );
     await this.dWMATIC.deployed();
@@ -83,11 +85,4 @@ describe("DToken", function () {
     const res = await this.dWMATIC.debtValue(await this.signer.getAddress());
     expect(res.eq(constants.WeiPerEther)).to.be.true;
   });
-
-  it("should allow to query for current debt", async () => {});
-
-  // it("should allow for requesting an asset's price in EUR", async () => {
-  //   const res = await this.oracle.getAssetPriceEUR(process.env.WMATIC);
-  //   expect(res).to.not.be.undefined;
-  // });
 });
