@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSigner } from 'wagmi'
+import { useContract, useSigner } from 'wagmi'
 import { utils } from 'ethers'
 import { getTokenBalances, } from '@alch/alchemy-sdk'
 import alchemy from '../web3/alchemy'
@@ -13,6 +13,12 @@ const ActionForm = ({ underlyingAddress, tokenAddress, actions, metadata }) => {
     const [showApprove, setShowApprove] = useState(true)
     const [underlyingBalance, setUnderlyingBalance] = useState('0.0')
     const [allowance, setAllowance] = useState()
+
+    const underlying = useContract({
+        addressOrName: underlyingAddress,
+        contractInterface: ['function approve(address,uint256) public'],
+        signerOrProvider: signer
+    })
 
     const fetchUnderlyingData = async () => {
         const signerAddress = await signer.getAddress()
