@@ -154,25 +154,29 @@ contract DToken is ERC20, Multicall, IERC3156FlashLender {
     }
 
     /**
-     * @notice supply collateral to vault
-     * @dev requires approval first
+     * @notice Supply collateral without having to approve first
+     * @dev Approval is handled by the permit
      * @param amount - amount to supply
+     * @param deadline - timestamp for validity of permit
+     * @param v - v part of the permit
+     * @param r - r part of the permit
+     * @param s - s part of the permit
      */
     function supplyWithPermit(
         uint256 amount,
         uint256 deadline,
-        uint8 permitV,
-        bytes32 permitR,
-        bytes32 permitS
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) public {
         IERC2612(address(_underlying)).permit(
             msg.sender,
             address(this),
             amount,
             deadline,
-            permitV,
-            permitR,
-            permitS
+            v,
+            r,
+            s
         );
         _underlying.safeTransferFrom(msg.sender, address(this), amount);
         _mint(

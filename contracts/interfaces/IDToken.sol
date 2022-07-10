@@ -67,12 +67,21 @@ interface IDToken {
      */
     function supply(uint256 amount) external;
 
+    /**
+     * @notice Supply collateral without having to approve first
+     * @dev Approval is handled by the permit
+     * @param amount - amount to supply
+     * @param deadline - timestamp for validity of permit
+     * @param v - v part of the permit
+     * @param r - r part of the permit
+     * @param s - s part of the permit
+     */
     function supplyWithPermit(
         uint256 amount,
         uint256 deadline,
-        uint8 permitV,
-        bytes32 permitR,
-        bytes32 permitS
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) external;
 
     /**

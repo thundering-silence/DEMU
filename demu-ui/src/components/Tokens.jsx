@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import DToken from './DToken';
 
 const Tokens = ({ tokens }) => <section className='min-h-screen pt-8 pb-24'>
@@ -11,4 +12,4 @@ const Tokens = ({ tokens }) => <section className='min-h-screen pt-8 pb-24'>
 </section>
 
 
-export default Tokens;
+export default memo(Tokens);

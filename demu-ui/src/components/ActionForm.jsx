@@ -1,39 +1,36 @@
 import { useEffect, useState } from 'react'
-import { useContract, useSigner } from 'wagmi'
-import { constants, utils } from 'ethers'
-import { getTokenBalances, getTokenMetadata } from '@alch/alchemy-sdk'
+import { useSigner } from 'wagmi'
+import { utils } from 'ethers'
+import { getTokenBalances, } from '@alch/alchemy-sdk'
 import alchemy from '../web3/alchemy'
 
 const tabs = ['supply', 'withdraw', 'mint', 'burn']
 
-const ActionForm = ({ underlyingAddress, tokenAddress, actions }) => {
+const ActionForm = ({ underlyingAddress, tokenAddress, actions, metadata }) => {
     const { data: signer } = useSigner()
     const [selectedTab, setSelectedTab] = useState(tabs[0])
     const [amount, setAmount] = useState('0')
     const [showApprove, setShowApprove] = useState(true)
     const [underlyingBalance, setUnderlyingBalance] = useState('0.0')
-    const [underlyingDecimals, setUnderlyingDecimals] = useState('18')
     const [allowance, setAllowance] = useState()
 
     const fetchUnderlyingData = async () => {
         const signerAddress = await signer.getAddress()
         try {
             const { tokenBalances } = await getTokenBalances(alchemy, signerAddress, [underlyingAddress])
-            const { decimals } = await getTokenMetadata(alchemy, underlyingAddress)
             const { result } = await alchemy.getProvider().send('alchemy_getTokenAllowance', [{
                 contract: underlyingAddress,
                 owner: signerAddress,
                 spender: tokenAddress
             }])
             setAllowance(result)
-            setUnderlyingBalance(utils.parseUnits(tokenBalances[0].tokenBalance, `${decimals}`))
-            setUnderlyingDecimals(`${decimals}`)
+            setUnderlyingBalance(utils.parseUnits(tokenBalances[0].tokenBalance, `${metadata.decimals}`))
         } catch (e) { }
     }
 
 
     useEffect(() => {
-        if (!signer) return;
+        if (!signer || allowance) return;
         fetchUnderlyingData()
     }, [underlyingAddress, signer])
 
@@ -71,7 +68,7 @@ const ActionForm = ({ underlyingAddress, tokenAddress, actions }) => {
             <div className='btn-group flex justify-center py-2'>
                 {showApprove && <button
                     className='btn btn-primary'
-                    onClick={() => underlying.approve(tokenAddress, utils.parseUnits(amount, underlyingDecimals))}
+                    onClick={() => underlying.approve(tokenAddress, utils.parseUnits(amount, metadata.decimals))}
                 >
                     Approve
                 </button>
@@ -79,7 +76,7 @@ const ActionForm = ({ underlyingAddress, tokenAddress, actions }) => {
                 <button
                     className='btn btn-primary'
                     onClick={() =>
-                        actions[selectedTab](utils.parseUnits(amount, underlyingDecimals))}
+                        actions[selectedTab](utils.parseUnits(amount, metadata.decimals))}
                 >
                     {selectedTab}
                 </button>

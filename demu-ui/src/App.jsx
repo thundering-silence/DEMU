@@ -14,7 +14,8 @@ const supportedAssets = ["WMATIC", "WBTC", "WETH", "DAI", "USDC", "LINK"];
 function App() {
   const dTokens = useRef(supportedAssets.map(el => ({
     name: el,
-    tokenAddress: import.meta.env[`VITE_d${el}`]
+    tokenAddress: import.meta.env[`VITE_d${el}`],
+    underlyingAddress: import.meta.env[`VITE_${el}`]
   })))
 
   return (
