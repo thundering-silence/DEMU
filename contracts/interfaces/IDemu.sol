@@ -8,5 +8,5 @@ interface IDemu is IERC20 {
 
     function burn(address from, uint256 amount) external;
 
-    function setMinter(address account, bool canMint) external;
+    function setAdmin(address account) external;
 }
