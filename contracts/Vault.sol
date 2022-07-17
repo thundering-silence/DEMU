@@ -53,6 +53,10 @@ contract Vault is Context, Initializable, KeeperCompatibleInterface, Multicall {
         return address(_dataProvider);
     }
 
+    function supplied(address asset) public view returns (uint256) {
+        return _supplied[asset];
+    }
+
     function collateral() public view returns (uint256 value) {
         address[] memory assets = _dataProvider.supportedAssets();
         uint256 loops = assets.length;

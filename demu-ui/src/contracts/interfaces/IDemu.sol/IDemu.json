@@ -162,14 +162,9 @@
           "internalType": "address",
           "name": "account",
           "type": "address"
-        },
-        {
-          "internalType": "bool",
-          "name": "canMint",
-          "type": "bool"
         }
       ],
-      "name": "setMinter",
+      "name": "setAdmin",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "IPriceFeed",
-  "sourceName": "contracts/interfaces/IPriceFeed.sol",
+  "contractName": "IPriceOracle",
+  "sourceName": "contracts/interfaces/IPriceOracle.sol",
   "abi": [
     {
       "inputs": [

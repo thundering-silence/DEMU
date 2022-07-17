@@ -3,6 +3,15 @@ const { BigNumber, constants, utils } = require("ethers");
 const { ethers } = require("hardhat");
 require("dotenv").config();
 
+/**
+ * Deployment steps:
+ * - deploy DEMU
+ * - deploy Vault
+ * - deploy PriceOrale
+ * - deploy DataProvider
+ * - `initialize` Vault
+ * - transfer ownership of Vault to DataProvider
+ */
 describe("Vault", function () {
   before(async () => {
     const signers = await ethers.getSigners();
