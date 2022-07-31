@@ -39,7 +39,7 @@ const Main = () => {
 
 
     return <section className='min-h-screen pt-8 pb-24'>
-        <h2 className='text-4xl text-primary font-bold text-center pb-2'>MINT DEMU</h2>
+        <h2 className='text-4xl text-primary font-bold text-center pb-2'>DEMU</h2>
         <p className='text-lg text-primary font-semibold text-center'>
             DEMU is completely FREE to mint and doesn't charge any interest
         </p>

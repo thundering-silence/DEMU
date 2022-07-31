@@ -72,7 +72,7 @@ contract Vault is Context, Initializable, KeeperCompatibleInterface, Multicall {
                 value += scaledAmount * price; // value is denominated in 1e36
             }
         }
-        value /= 1e18; // scale down value back to 1e8
+        value /= 1e18; // scale down value back to 1e18
     }
 
     function maxMintable() public view returns (uint256) {
@@ -198,7 +198,7 @@ contract Vault is Context, Initializable, KeeperCompatibleInterface, Multicall {
                 .getAssetPriceEUR(asset);
             uint256 collateralValue = (suppliedAmount * collateralPrice) / 1e18;
             uint256 collateralAmount;
-            if (collateralValue < ((excessValue * 110) / 100)) {
+            if (collateralValue < ((excessValue * 1100) / 1000)) {
                 collateralAmount = suppliedAmount;
             } else {
                 collateralAmount = excessValue / collateralPrice;
@@ -206,11 +206,11 @@ contract Vault is Context, Initializable, KeeperCompatibleInterface, Multicall {
             }
             IERC20(asset).safeTransfer(
                 params.liquidator,
-                (collateralAmount * 108) / 110
+                (collateralAmount * 1075) / 1100
             );
             IERC20(asset).safeTransfer(
                 _dataProvider.feesCollector(),
-                (collateralAmount * 2) / 110
+                (collateralAmount * 25) / 1100
             );
             excessValue -= collateralValue;
         }
