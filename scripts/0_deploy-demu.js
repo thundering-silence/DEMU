@@ -7,7 +7,7 @@ const hre = require("hardhat");
 require("dotenv").config();
 
 async function main() {
-  const DEMU = await ethers.getContractFactory("Demu");
+  const DEMU = await hre.ethers.getContractFactory("Demu");
   const demu = await DEMU.deploy();
   await demu.deployed();
   console.log(`DEMU=${demu.address}`);

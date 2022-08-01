@@ -2,49 +2,31 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "./interfaces/IDemu.sol";
+abstract contract DataProvider is Ownable {
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-interface IVault {
-    function owner() external view returns (address);
-
-    function dataProvider() external view returns (address);
-
-    function initialize(address dataProvider_, address owner_) external;
-}
-
-contract DataProvider is Ownable {
-    address internal _demu;
     address internal _priceOracle;
     address internal _feesCollector;
-    address[] internal _supportedAssets;
-    address internal _vaultImplementation;
-
-    mapping(address => address) internal _vaults;
+    EnumerableSet.AddressSet internal _supportedAssets;
 
     event PriceOracle(address newOracle);
     event FeesCollector(address newCollector);
     event NewAsset(address asset);
-    event AssetRemoved(uint256 index);
-    event NewImplementation(address newImplementation);
+    event AssetRemoved(address asset);
 
     constructor(
-        address demu_,
         address oracle_,
         address collector_,
-        address[] memory assets_,
-        address vault_
+        address[] memory assets_
     ) {
-        _demu = demu_;
         _priceOracle = oracle_;
         _feesCollector = collector_;
-        _supportedAssets = assets_;
-        _vaultImplementation = vault_;
-    }
-
-    function demu() public view returns (address) {
-        return _demu;
+        uint256 loops = assets_.length;
+        for (uint256 i; i < loops; ++i) {
+            _supportedAssets.add(assets_[i]);
+        }
     }
 
     function oracle() public view returns (address) {
@@ -55,47 +37,8 @@ contract DataProvider is Ownable {
         return _feesCollector;
     }
 
-    function vaultImplementation() public view returns (address) {
-        return _vaultImplementation;
-    }
-
     function supportedAssets() public view returns (address[] memory) {
-        uint256 loops = _supportedAssets.length;
-        address[] memory assets = new address[](loops);
-        for (uint256 i; i < loops; ++i) {
-            assets[i] = _supportedAssets[i];
-        }
-        return assets;
-    }
-
-    function getVaultFor(address account) public view returns (address) {
-        return _vaults[account];
-    }
-
-    function createVault() public {
-        require(
-            _vaults[_msgSender()] == address(0),
-            "DataProvider: not allowed"
-        );
-
-        bytes memory data = abi.encodeWithSignature(
-            "initialize(address,address)",
-            address(this),
-            _msgSender()
-        );
-
-        ERC1967Proxy newVault = new ERC1967Proxy(_vaultImplementation, data);
-        IVault vault = IVault(address(newVault));
-        address owner = vault.owner();
-        require(
-            owner == _msgSender() && vault.dataProvider() == address(this),
-            "Tx was tampered with"
-        );
-
-        _vaults[owner] = address(newVault);
-
-        // Allow vault to mint/burn DEMU
-        IDemu(_demu).setAdmin(address(newVault));
+        return _supportedAssets.values();
     }
 
     function setPriceOracle(address newOracle) public onlyOwner {
@@ -109,27 +52,12 @@ contract DataProvider is Ownable {
     }
 
     function supportNewAsset(address asset) public onlyOwner {
-        _supportedAssets.push(asset);
+        _supportedAssets.add(asset);
         emit NewAsset(asset);
     }
 
-    function removeSupportedAsset(uint256 index) public onlyOwner {
-        uint256 loops = _supportedAssets.length;
-        address[] memory oldAssets = _supportedAssets;
-        address[] memory assets = new address[](loops - 1);
-        for (uint256 i; i < loops; ++i) {
-            uint256 idx = index >= i ? i + 1 : i;
-            assets[i] = oldAssets[idx];
-        }
-        _supportedAssets = assets;
-        emit AssetRemoved(index);
-    }
-
-    function setNewVaultImplementation(address newImplementation)
-        public
-        onlyOwner
-    {
-        _vaultImplementation = newImplementation;
-        emit NewImplementation(newImplementation);
+    function removeSupportedAsset(address asset) public onlyOwner {
+        _supportedAssets.remove(asset);
+        emit AssetRemoved(asset);
     }
 }

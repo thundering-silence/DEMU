@@ -6,16 +6,21 @@
 const hre = require("hardhat");
 require("dotenv").config();
 
-const supportedAssets = ['WMATIC', 'WBTC', 'WETH', 'DAI', 'USDC', 'LINK']
+const supportedAssets = ["WMATIC", "WBTC", "WETH", "DAI", "USDC", "LINK"];
 
 async function main() {
-  const Oracle = await ethers.getContractFactory("PriceOracle");
+  const Oracle = await hre.ethers.getContractFactory("PriceOracle");
   const oracle = await Oracle.deploy();
   await oracle.deployed();
-  await Promise.all(supportedAssets.map(async asset => await oracle.setAggregatorForAsset(
-    process.env[asset],
-    process.env[`${asset}_AGGREGATOR`]
-  )));
+  await Promise.all(
+    supportedAssets.map(
+      async (asset) =>
+        await oracle.setAggregatorForAsset(
+          process.env[asset],
+          process.env[`${asset}_AGGREGATOR`]
+        )
+    )
+  );
   await oracle.setEURUSDAggregator(process.env.EUR_USD_AGGREGATOR);
   console.log(`ORACLE=${oracle.address}`);
 }
