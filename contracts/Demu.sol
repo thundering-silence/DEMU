@@ -14,27 +14,30 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 
 import "./DataProvider.sol";
 import "./interfaces/IPriceOracle.sol";
 
-import "hardhat/console.sol";
-
-contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multicall, KeeperCompatibleInterface, IERC3156FlashLender {
+contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Multicall, KeeperCompatibleInterface, IERC3156FlashLender {
     using SafeERC20 for IERC20;
-    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
-    EnumerableSet.AddressSet internal _accounts;
-    mapping(address => mapping(address => uint256)) internal _supplied;
-    mapping(address => uint256) internal _minted;
+    mapping(address => EnumerableMap.AddressToUintMap) internal _supplied;
+    EnumerableMap.AddressToUintMap internal _minted;
 
-    event Mint(address indexed to, uint256 amount);
-    event Burn(address indexed from, uint256 amount);
+    event Mint(address indexed dst, uint256 amt);
+    event Burn(address indexed src, uint256 amt);
     event Supply(address indexed src, uint256 amt);
     event Withdraw(address indexed dst, uint256 amt);
-    event Liquidate(address indexed caller);
+    event Liquidate(address indexed dst, address indexed src, address asset, uint amt);
+
+    struct LiquidationParams {
+        address account;
+        address[] assets;
+        address liquidator;
+    }
 
     constructor(
         address oracle_,
@@ -49,37 +52,64 @@ contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multi
         view
         returns (uint256)
     {
-        return _supplied[account][asset];
+        (, uint amt) = _supplied[account].tryGet(asset);
+        return amt;
     }
 
     function collateral(address account) public view returns (uint256 value) {
-        address[] memory assets = supportedAssets();
-        uint256 loops = assets.length;
+        uint256 loops = _supplied[account].length();
         for (uint256 i; i < loops; ++i) {
-            uint256 amount = _supplied[account][assets[i]];
+            (address asset, uint amount) = _supplied[account].at(i);
             if (amount > 0) {
                 uint256 scaledAmount = _scaleToStanderdDecimals(
-                    assets[i],
+                    asset,
                     amount
                 );
                 IPriceOracle oracle = IPriceOracle(oracle());
-                uint256 price = oracle.getAssetPriceEUR(assets[i]);
+                uint256 price = oracle.getAssetPriceEUR(asset);
                 value += scaledAmount * price; // value is denominated in 1e36
             }
         }
         value /= 1e18; // scale down value back to 1e18
     }
 
-    function maxMintable(address account) public view returns (uint256) {
-        return collateral(account) / 2; // 50%
+    function maxMintable(address account) public view returns (uint256 value) {
+        uint256 loops = _supplied[account].length();
+        for (uint256 i; i < loops; ++i) {
+            (address asset, uint amount) = _supplied[account].at(i);
+            if (amount > 0) {
+                uint256 scaledAmount = _scaleToStanderdDecimals(
+                    asset,
+                    amount
+                );
+                IPriceOracle oracle = IPriceOracle(oracle());
+                uint256 price = oracle.getAssetPriceEUR(asset);
+                value += (scaledAmount * price * _conf[asset].mintLTV);
+            }
+            value /= (1e18 * bpsDenominator()); // scale value back down to 1e18
+        }
     }
 
-    function maxDebt(address account) public view returns (uint256) {
-        return (collateral(account) * 8) / 10; // 80%
+    function maxDebt(address account) public view returns (uint256 value) {
+        uint256 loops = _supplied[account].length();
+        for (uint256 i; i < loops; ++i) {
+            (address asset, uint amount) = _supplied[account].at(i);
+            if (amount > 0) {
+                uint256 scaledAmount = _scaleToStanderdDecimals(
+                    asset,
+                    amount
+                );
+                IPriceOracle oracle = IPriceOracle(oracle());
+                uint256 price = oracle.getAssetPriceEUR(asset);
+                value += (scaledAmount * price * _conf[asset].liquidationLTV);
+            }
+            value /= (1e18 * bpsDenominator()); // scale value back down to 1e18
+        }
     }
 
     function currentDebt(address account) public view returns (uint256) {
-        return (_minted[account] * demuPrice()) / 1e18;
+        (, uint amt) = _minted.tryGet(account);
+        return (amt * demuPrice()) / 1e18;
     }
 
     function demuPrice() public view returns (uint256) {
@@ -120,36 +150,37 @@ contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multi
             currentDebt(_msgSender()) <= maxDebt(_msgSender()),
             "Vault: not allowed"
         );
-        _supplied[_msgSender()][asset] -= amount;
+        _supplied[_msgSender()].set(asset, supplied(_msgSender(), asset) - amount);
         emit Withdraw(asset, amount);
     }
 
     function mint(uint256 amount) public {
         _mint(_msgSender(), amount);
-        _minted[_msgSender()] += amount;
-        _accounts.add(_msgSender());
         require(
             currentDebt(_msgSender()) <= maxMintable(_msgSender()),
             "Vault: not allowed"
         );
+        if (_minted.contains(_msgSender())) {
+            (, uint amt) = _minted.tryGet(_msgSender());
+            _minted.set(_msgSender(), amt += amount);
+        } else {
+            _minted.set(_msgSender(), amount);
+        }
         emit Mint(_msgSender(), amount);
     }
 
     function burn(uint256 amount) public {
         _burn(_msgSender(), amount);
-        uint256 minted = _minted[_msgSender()];
+        require(_minted.contains(_msgSender()));
+        (, uint minted) = _minted.tryGet(_msgSender());
         // it's ok to revert if this goes underflows
-        _minted[_msgSender()] = minted - amount; // it's ok to revert if this goes underflows
-        if ((minted - amount) == 0) {
-            _accounts.remove(_msgSender());
+        minted -= amount;
+        if (minted == 0) {
+            _minted.remove(_msgSender());
+        } else {
+            _minted.set(_msgSender(), minted);
         }
         emit Burn(_msgSender(), amount);
-    }
-
-    struct LiquidationParams {
-        address account;
-        address[] assets;
-        address liquidator;
     }
 
     function checkUpkeep(bytes calldata)
@@ -158,31 +189,29 @@ contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multi
         override
         returns (bool upkeepNeeded, bytes memory performData)
     {
-        address collector = feesCollector();
+        address collector = _feesCollector;
         uint256 balance = balanceOf(collector);
         if (balance == 0) {
             upkeepNeeded = false;
         } else {
             address[] memory supported = supportedAssets();
-            // runs off-chain or in a gasless tx so it's fine even when there are a lot of accounts
-            address[] memory accounts = _accounts.values();
-            uint256 length = _accounts.length();
-            // Not having dynamic length in-memory arrays is terrible...LOOK AT WHAT YOU MADE ME DO, VITALIK!
+            // runs off-chain or in a gasless tx so it's fine even when there are a lot of users
+            uint256 length = _minted.length();
             bool[] memory dos = new bool[](length);
-            address[] memory users = new address[](length);
+            address[] memory accounts = new address[](length);
             address[][] memory assets = new address[][](length);
             address[] memory liquidators = new address[](length);
             for (uint256 i; i < length; ++i) {
-                address account = accounts[i];
-                uint256 debtCeil = maxDebt(account);
+                (address account,) = _minted.at(i);
                 uint256 current = currentDebt(account);
+                uint256 debtCeil = maxDebt(account);
                 uint256 minExcess = debtCeil / 20; // excess needs to be at least 5% of maxDebt
                 uint256 excessValue = current - debtCeil;
                 if (excessValue >= minExcess) {
                   dos[i] = true;
-                  users[i] = account;
+                  accounts[i] = account;
                   assets[i] = supported;
-                  liquidators[i] = feesCollector();
+                  liquidators[i] = collector;
                 }
             }
             performData = abi.encode(dos, accounts, assets, liquidators);
@@ -205,7 +234,7 @@ contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multi
                     assets: assets[i],
                     liquidator: liquidators[i]
                 });
-                liquidate(params);
+                address(this).delegatecall(abi.encodeWithSignature("liquidate(address,address[],address)", params));
             }
         }
     }
@@ -217,7 +246,7 @@ contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multi
 
         uint256 excessValue = current - debtCeil;
         uint256 excessAmount = excessValue / demuPrice();
-
+        _burn(params.liquidator, excessAmount);
         uint256 loops = params.assets.length;
 
         for (uint256 i; i < loops; ++i) {
@@ -225,12 +254,13 @@ contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multi
                 break;
             }
             address asset = params.assets[i];
-            uint256 suppliedAmount = _supplied[params.account][asset];
+            uint256 suppliedAmount = supplied(params.account, asset);
             uint256 collateralPrice = IPriceOracle(oracle())
                 .getAssetPriceEUR(asset);
             uint256 collateralValue = (suppliedAmount * collateralPrice) / 1e18;
             uint256 collateralAmount;
-            if (collateralValue < ((excessValue * 1100) / 1000)) {
+            uint sumOfLiqPenalties = _conf[asset].liquidationIncentive + _conf[asset].protocolCut + bpsDenominator();
+            if (collateralValue < ((excessValue * sumOfLiqPenalties) / bpsDenominator())) {
                 collateralAmount = suppliedAmount;
             } else {
                 collateralAmount = excessValue / collateralPrice;
@@ -238,22 +268,26 @@ contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multi
             }
             IERC20(asset).safeTransfer(
                 params.liquidator,
-                (collateralAmount * 1075) / 1100
+                (collateralAmount * (bpsDenominator() + _conf[asset].liquidationIncentive)) / sumOfLiqPenalties
             );
             IERC20(asset).safeTransfer(
                 feesCollector(),
-                (collateralAmount * 25) / 1100
+                (collateralAmount * _conf[asset].protocolCut) / sumOfLiqPenalties
             );
             excessValue -= collateralValue;
+            emit Liquidate(params.liquidator, params.account, asset, collateralAmount);
         }
-
-        _burn(params.liquidator, excessAmount);
-        emit Liquidate(params.liquidator);
     }
 
     function _supply(address asset, uint256 amount) internal {
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
-        _supplied[_msgSender()][asset] += amount;
+        address account = _msgSender();
+        IERC20(asset).safeTransferFrom(account, address(this), amount);
+        if (_supplied[account].contains(asset)) {
+            (, uint amt) = _supplied[account].tryGet(asset);
+            _supplied[account].set(asset, amt += amount);
+        } else {
+            _supplied[account].set(asset, amount);
+        }
         emit Supply(asset, amount);
     }
 
@@ -298,6 +332,7 @@ contract Demu is ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"), DataProvider, Multi
             IERC20(token).transferFrom(address(receiver), address(this), amount + fee),
             "FlashLender: Repay failed"
         );
+        IERC20(token).transfer(_feesCollector, fee);
         return true;
     }
 }
