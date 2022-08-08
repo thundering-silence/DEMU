@@ -55,8 +55,6 @@ const ActionForm = ({ demu }) => {
             toast.error(err.error.data.message.match(/'(.*?)'/g), {
                 position: 'top-right'
             })
-            // console.log(err.error.data.message)
-            // console.dir(err.error)
         }
     }
 
@@ -77,9 +75,6 @@ const ActionForm = ({ demu }) => {
                 const metadata = await getTokenMetadata(alchemy, underlyingAddress)
                 setMetadata(metadata)
                 const balance = await underlying.balanceOf(demu.signer._address);
-                const balanceOfDemu = await underlying.balanceOf(demu.address);
-                console.log(`DEMU balance: `, utils.formatEther(balanceOfDemu, metadata.decimals))
-                // setAllowance(utils.formatEther(allowance, metadata.decimals))
                 setUnderlyingBalance(utils.formatEther(balance, metadata.decimals))
             } else {
                 const balance = await demu.signer.getBalance()
@@ -136,7 +131,7 @@ const ActionForm = ({ demu }) => {
             <div className='form-control'>
                 <label className='label text-base-100 font-semibold'>
                     <span className="label-text text-base-100">Amount</span>
-                    <span className="label-text-alt text-base-100">max: {underlyingBalance}</span>
+                    {selectedTab == "supply" && <span className="label-text-alt text-base-100">max: {underlyingBalance}</span>}
                 </label>
                 <input
                     className='input input-boredered border-white'
