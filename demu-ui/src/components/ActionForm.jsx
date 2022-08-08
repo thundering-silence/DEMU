@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useContract, useSigner } from 'wagmi'
+import { useContract } from 'wagmi'
 import { utils } from 'ethers'
 import { getTokenBalances, getTokenMetadata } from '@alch/alchemy-sdk'
 
 import alchemy from '../web3/alchemy'
+import { supportedAssets } from "../constants"
 
 const tabs = {
     'supply': {
@@ -24,36 +25,57 @@ const tabs = {
     }
 }
 
-const supportedAssets = ['WMATIC', 'WBTC', 'WETH', 'DAI', 'USDC', 'LINK']
-
-const ActionForm = ({ vaultAddress, actions, signer }) => {
+const ActionForm = ({ demu }) => {
     const [selectedTab, setSelectedTab] = useState('supply')
     const [amount, setAmount] = useState('0')
     const [underlyingBalance, setUnderlyingBalance] = useState('0.0')
-    const [allowance, setAllowance] = useState()
+    const [allowance, setAllowance] = useState('0')
     const [underlyingAddress, setUnderlyingAddress] = useState(import.meta.env.VITE_WMATIC)
     const [metadata, setMetadata] = useState();
 
+    const executeAction = async (e) => {
+        e.preventDefault()
+        try {
+            if (selectedTab == "supply" && underlyingAddress == "0xNATIVE") {
+                await demu.supplyNative(utils.parseUnits(amount, 18))
+            } else {
+                const actions = {
+                    'supply': async (asset, amt) => await demu.supply(asset, amt),
+                    'withdraw': async (asset, amt) => await demu.withdraw(asset, amt),
+                    'mint': async (_, amt) => await demu.mint(amt),
+                    'burn': async (_, amt) => await demu.burn(amt)
+                }
+                await actions[selectedTab](demu.address, utils.parseUnits(amount, metadata.decimals))
+            }
+        } catch (err) {
+            console.dir(err)
+        }
+    }
+
     const underlying = useContract({
         addressOrName: underlyingAddress,
-        contractInterface: ['function approve(address,uint256) public'],
-        signerOrProvider: signer
+        contractInterface: [
+            'function approve(address,uint256) public',
+            'function allowance(address,address) public view returns (uint256)',
+            'function balanceOf(address) public view returns (uint256)',
+        ],
+        signerOrProvider: demu.signer
     })
 
     const fetchUnderlyingData = async () => {
-        const signerAddress = await signer.getAddress()
+        if (!demu.signer) return;
         try {
-            const metadata = await getTokenMetadata(alchemy, underlyingAddress)
-            console.log(metadata)
-            setMetadata(metadata)
-            const { tokenBalances } = await getTokenBalances(alchemy, signerAddress, [underlyingAddress])
-            const { result } = await alchemy.getProvider().send('alchemy_getTokenAllowance', [{
-                contract: underlyingAddress,
-                owner: signerAddress,
-                spender: vaultAddress
-            }])
-            setAllowance(result)
-            setUnderlyingBalance(utils.parseUnits(tokenBalances[0].tokenBalance, `${metadata.decimals}`))
+            if (underlyingAddress != "0xNATIVE") {
+                const metadata = await getTokenMetadata(alchemy, underlyingAddress)
+                setMetadata(metadata)
+                const allowance = await underlying.allowance(demu.signer._address, demu.address);
+                const balance = await underlying.balanceOf(demu.signer._address);
+                setAllowance(utils.formatEther(allowance, metadata.decimals))
+                setUnderlyingBalance(utils.formatEther(balance, metadata.decimals))
+            } else {
+                const balance = await demu.signer.getBalance()
+                setUnderlyingBalance(utils.formatEther(balance, 18))
+            }
         } catch (e) {
             console.log(e)
         }
@@ -62,7 +84,7 @@ const ActionForm = ({ vaultAddress, actions, signer }) => {
 
     useEffect(() => {
         fetchUnderlyingData()
-    }, [underlyingAddress, signer])
+    }, [underlyingAddress, demu.signer])
 
     const handleAmountChange = e => {
         try {
@@ -71,18 +93,18 @@ const ActionForm = ({ vaultAddress, actions, signer }) => {
         } catch (e) { }
     }
 
-    return <div className='flex flex-col justify-center items-center g-baseb-100 rounded-lg pt-4'>
-        <ul className="tabs tabs-boxed flex flex-row w-full">
+    return <div className='flex flex-col justify-center items-center rounded-lg pt-4 max-w-8'>
+        <ul className="tabs tabs-boxed flex flex-row ">
             {Object.keys(tabs).map(tab => <li className='flex-1' key={tab}>
                 <a
-                    className={`tab  uppercase ${tab == selectedTab && 'tab-active'}`}
+                    className={`tab uppercase ${tab == selectedTab && 'tab-active'}`}
                     onClick={() => setSelectedTab(tab)}
                 >
-                    {tab}
+                    <span className='text-xs md:text-md'>{tab}</span>
                 </a>
             </li>)}
         </ul>
-        <form className='w-full p-2'>
+        <form className='w-full max-w-8 p-2' onSubmit={executeAction}>
             {tabs[selectedTab].asset && <div className='form-control'>
                 <label className='label text-base-100 font-semibold'>
                     <span className="label-text text-base-100">Asset</span>
@@ -90,13 +112,14 @@ const ActionForm = ({ vaultAddress, actions, signer }) => {
                 <select
                     className='select select-boredered border-white'
                     value={underlyingAddress}
-                    onChange={e => setUnderlyingAddress(e.target)}
+                    onChange={e => setUnderlyingAddress(e.target.value)}
                 >
-                    {supportedAssets.map((el) => <option
-                        key={el}
-                        value={import.meta.env[`VITE_${el}`]}
+                    {selectedTab == "supply" && <option value="0xNATIVE">MATIC</option>}
+                    {supportedAssets.map(({ symbol }) => <option
+                        key={symbol}
+                        value={import.meta.env[`VITE_${symbol}`]}
                     >
-                        {el}
+                        {symbol}
                     </option>
                     )}
                 </select>
@@ -113,10 +136,10 @@ const ActionForm = ({ vaultAddress, actions, signer }) => {
                 />
             </div>
             <div className='btn-group flex justify-center py-2'>
-                {tabs[selectedTab].approve && <button
+                {tabs[selectedTab].approve && underlyingAddress != "0xNATIVE" && <button
                     type='button'
                     className='btn btn-primary'
-                    onClick={() => underlying.approve(vaultAddress, utils.parseUnits(amount, metadata.decimals))}
+                    onClick={() => underlying.approve(demu.address, utils.parseUnits(amount, metadata.decimals))}
                 >
                     Approve
                 </button>
@@ -124,7 +147,7 @@ const ActionForm = ({ vaultAddress, actions, signer }) => {
                 <button
                     type='button'
                     className='btn btn-primary'
-                    onClick={() => actions[selectedTab](underlyingAddress, utils.parseUnits(amount, metadata.decimals))}
+                    onClick={executeAction}
                 >
                     {selectedTab}
                 </button>

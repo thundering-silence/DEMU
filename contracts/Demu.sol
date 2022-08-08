@@ -19,6 +19,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 import "./DataProvider.sol";
 import "./interfaces/IPriceOracle.sol";
+import "./interfaces/INative.sol";
 
 contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Multicall, KeeperCompatibleInterface, IERC3156FlashLender {
     using SafeERC20 for IERC20;
@@ -121,7 +122,15 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
     }
 
     function supply(address asset, uint256 amount) public {
-        _supply(asset, amount);
+        address account = _msgSender();
+        IERC20(asset).safeTransferFrom(account, address(this), amount);
+        _supply(account, asset, amount);
+    }
+
+    function supplyNative(uint amount) public payable {
+        address account = _msgSender();
+        INATIVE(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270).deposit{value: msg.value}();
+        _supply(account, 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270, amount);
     }
 
     function supplyWithPermit(
@@ -141,7 +150,9 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
             r,
             s
         );
-        _supply(asset, amount);
+        address account = _msgSender();
+        IERC20(asset).safeTransferFrom(account, address(this), amount);
+        _supply(account, asset, amount);
     }
 
     function withdraw(address asset, uint256 amount) public {
@@ -156,16 +167,16 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
 
     function mint(uint256 amount) public {
         _mint(_msgSender(), amount);
-        require(
-            currentDebt(_msgSender()) <= maxMintable(_msgSender()),
-            "Vault: not allowed"
-        );
         if (_minted.contains(_msgSender())) {
             (, uint amt) = _minted.tryGet(_msgSender());
             _minted.set(_msgSender(), amt += amount);
         } else {
             _minted.set(_msgSender(), amount);
         }
+        require(
+            currentDebt(_msgSender()) <= maxMintable(_msgSender()),
+            "Vault: not allowed"
+        );
         emit Mint(_msgSender(), amount);
     }
 
@@ -279,9 +290,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         }
     }
 
-    function _supply(address asset, uint256 amount) internal {
-        address account = _msgSender();
-        IERC20(asset).safeTransferFrom(account, address(this), amount);
+    function _supply(address account, address asset, uint256 amount) internal {
         if (_supplied[account].contains(asset)) {
             (, uint amt) = _supplied[account].tryGet(asset);
             _supplied[account].set(asset, amt += amount);

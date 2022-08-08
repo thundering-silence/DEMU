@@ -1,6 +1,7 @@
 // import { useRef } from 'react';
 import { WagmiConfig } from 'wagmi'
 import client from './web3/wagmi.config';
+import { Toaster } from 'react-hot-toast'
 import Nav from './components/Nav';
 import Hero from './components/Hero';
 
@@ -20,6 +21,7 @@ function App() {
         </main>
         <Footer />
       </div>
+      <Toaster />
     </WagmiConfig>
   )
 }
