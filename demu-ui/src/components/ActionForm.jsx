@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useContract } from 'wagmi'
 import { utils } from 'ethers'
-import { getTokenBalances, getTokenMetadata } from '@alch/alchemy-sdk'
+import { getTokenMetadata } from '@alch/alchemy-sdk'
 
 import alchemy from '../web3/alchemy'
 import { supportedAssets } from "../constants"
