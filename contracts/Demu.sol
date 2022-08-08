@@ -62,7 +62,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         for (uint256 i; i < loops; ++i) {
             (address asset, uint amount) = _supplied[account].at(i);
             if (amount > 0) {
-                uint256 scaledAmount = _scaleToStanderdDecimals(
+                uint256 scaledAmount = _scaleToStandardDecimals(
                     asset,
                     amount
                 );
@@ -79,7 +79,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         for (uint256 i; i < loops; ++i) {
             (address asset, uint amount) = _supplied[account].at(i);
             if (amount > 0) {
-                uint256 scaledAmount = _scaleToStanderdDecimals(
+                uint256 scaledAmount = _scaleToStandardDecimals(
                     asset,
                     amount
                 );
@@ -96,7 +96,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         for (uint256 i; i < loops; ++i) {
             (address asset, uint amount) = _supplied[account].at(i);
             if (amount > 0) {
-                uint256 scaledAmount = _scaleToStanderdDecimals(
+                uint256 scaledAmount = _scaleToStandardDecimals(
                     asset,
                     amount
                 );
@@ -300,7 +300,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         emit Supply(asset, amount);
     }
 
-    function _scaleToStanderdDecimals(address asset, uint256 amount)
+    function _scaleToStandardDecimals(address asset, uint256 amount)
         internal
         view
         returns (uint256)
@@ -318,8 +318,9 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         return IERC20(token).balanceOf(address(this));
     }
 
-    function flashFee(address, uint256 amount) public override pure returns (uint256) {
-        return (amount >= 1e27 ? 10 : amount >= 1e24 ? 25 : 50) * amount / 1000000; // 0.001% | 0.0025% | 0.005%
+    function flashFee(address token, uint256 amount) public override view returns (uint256) {
+        uint scaledAmount = _scaleToStandardDecimals(token, amount);
+        return (scaledAmount >= 1e27 ? 10 : scaledAmount >= 1e24 ? 25 : 50) * scaledAmount / 1000000; // 0.001% | 0.0025% | 0.005%
     }
 
     function flashLoan(
