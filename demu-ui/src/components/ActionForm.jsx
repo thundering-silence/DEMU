@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useContract } from 'wagmi'
 import { utils } from 'ethers'
 import { getTokenMetadata } from '@alch/alchemy-sdk'
+import toast from 'react-hot-toast'
 
 import alchemy from '../web3/alchemy'
 import { supportedAssets } from "../constants"
@@ -29,7 +30,7 @@ const ActionForm = ({ demu }) => {
     const [selectedTab, setSelectedTab] = useState('supply')
     const [amount, setAmount] = useState('0')
     const [underlyingBalance, setUnderlyingBalance] = useState('0.0')
-    const [allowance, setAllowance] = useState('0')
+    // const [allowance, setAllowance] = useState('0')
     const [underlyingAddress, setUnderlyingAddress] = useState(import.meta.env.VITE_WMATIC)
     const [metadata, setMetadata] = useState();
 
@@ -37,7 +38,9 @@ const ActionForm = ({ demu }) => {
         e.preventDefault()
         try {
             if (selectedTab == "supply" && underlyingAddress == "0xNATIVE") {
-                await demu.supplyNative(utils.parseUnits(amount, 18))
+                await demu.functions.supplyNative({
+                    value: utils.parseUnits(amount, 18)
+                })
             } else {
                 const actions = {
                     'supply': async (asset, amt) => await demu.supply(asset, amt),
@@ -45,10 +48,15 @@ const ActionForm = ({ demu }) => {
                     'mint': async (_, amt) => await demu.mint(amt),
                     'burn': async (_, amt) => await demu.burn(amt)
                 }
-                await actions[selectedTab](demu.address, utils.parseUnits(amount, metadata.decimals))
+                await actions[selectedTab](underlyingAddress, utils.parseUnits(amount, metadata.decimals))
             }
         } catch (err) {
-            console.dir(err)
+            console.log(err)
+            toast.error(err.error.data.message.match(/'(.*?)'/g), {
+                position: 'top-right'
+            })
+            // console.log(err.error.data.message)
+            // console.dir(err.error)
         }
     }
 
@@ -68,9 +76,10 @@ const ActionForm = ({ demu }) => {
             if (underlyingAddress != "0xNATIVE") {
                 const metadata = await getTokenMetadata(alchemy, underlyingAddress)
                 setMetadata(metadata)
-                const allowance = await underlying.allowance(demu.signer._address, demu.address);
                 const balance = await underlying.balanceOf(demu.signer._address);
-                setAllowance(utils.formatEther(allowance, metadata.decimals))
+                const balanceOfDemu = await underlying.balanceOf(demu.address);
+                console.log(`DEMU balance: `, utils.formatEther(balanceOfDemu, metadata.decimals))
+                // setAllowance(utils.formatEther(allowance, metadata.decimals))
                 setUnderlyingBalance(utils.formatEther(balance, metadata.decimals))
             } else {
                 const balance = await demu.signer.getBalance()

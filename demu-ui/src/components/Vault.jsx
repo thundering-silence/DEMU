@@ -35,7 +35,7 @@ const Vault = ({ demu }) => {
         },
         supplied: []
     })
-    const getContractData = async () => {
+    const getAccountData = async () => {
         const res = await fetchAccountData(demu);
         setAccountData(state => ({ ...state, ...res }))
     }
@@ -43,7 +43,7 @@ const Vault = ({ demu }) => {
         if (!demu) { return }
         if (accountData.overview['Health Rate']) { return }
         try {
-            getContractData()
+            getAccountData()
         } catch (e) { }
     }, [demu])
 

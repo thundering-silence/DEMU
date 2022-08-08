@@ -127,10 +127,10 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         _supply(account, asset, amount);
     }
 
-    function supplyNative(uint amount) public payable {
+    function supplyNative() public payable {
         address account = _msgSender();
         INATIVE(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270).deposit{value: msg.value}();
-        _supply(account, 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270, amount);
+        _supply(account, 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270, msg.value);
     }
 
     function supplyWithPermit(
@@ -159,7 +159,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         IERC20(asset).safeTransfer(_msgSender(), amount);
         require(
             currentDebt(_msgSender()) <= maxDebt(_msgSender()),
-            "Vault: not allowed"
+            "DEMU: Not allowed to withdraw this much"
         );
         _supplied[_msgSender()].set(asset, supplied(_msgSender(), asset) - amount);
         emit Withdraw(asset, amount);
@@ -175,7 +175,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         }
         require(
             currentDebt(_msgSender()) <= maxMintable(_msgSender()),
-            "Vault: not allowed"
+            "DEMU: Not allowed to mint this much"
         );
         emit Mint(_msgSender(), amount);
     }
@@ -253,7 +253,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
     function liquidate(LiquidationParams memory params) public {
         uint256 debtCeil = maxDebt(params.account);
         uint256 current = currentDebt(params.account);
-        require(current > debtCeil, "Vault: not allowed");
+        require(current > debtCeil, "DEMU: Cannot liquidate account");
 
         uint256 excessValue = current - debtCeil;
         uint256 excessAmount = excessValue / demuPrice();
