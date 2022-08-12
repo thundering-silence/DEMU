@@ -53,6 +53,6 @@ While developing DEMU I learned more about EIP2612's specifications as well as b
 - Allow for flash collateral swapping
 - Implement folding capabilities in order to multiply exposure to an asset
 - Possibly expand the variety of stablecoins to other widely used currencies - GBP, JPY, etc
-- Find ways to protect liquidators against MEV
+- Find ways to protect liquidators against frontrunners & MEV
 - Integrate with stableswaps or create a FX-only DEX with extremely low slippage
 - Possibly release a NFT collection giving access to revenue sharing (yield bearing NFT)
