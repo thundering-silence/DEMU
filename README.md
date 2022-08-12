@@ -53,15 +53,15 @@ While developing DEMU I learned more about EIP2612's specifications as well as b
 Purely DEMU
 - Expand supported collaterals to other tokens (very simple as long as supported by Chainlink Data Feeds)
 - Enable using yield bearing assets as collateral (simple as long as they are pegged to the underlying)
-- Deploy on other chains
+- Deploy on other EVM chains
 - Decentralized governance
 - Revenue sharing system via time locked staking
 - Find ways to protect liquidators against frontrunners (flashbots protect | whitelisted liquidators)
+- Develop flash collateral swaps contract + UI
 
-Requires LP on Dexes
+Requires LPs on Dexes
 - Implement non-liquidating self-repaying loans (Alchemix style) with minimal interest rate
 - Allow for repaying loans directly by using collateral (flash repay)
-- Develop flash collateral swaps contract + UI
 - Implement folding capabilities in order to increase exposure to an asset
 
 DEMU's codebase can also be used to
