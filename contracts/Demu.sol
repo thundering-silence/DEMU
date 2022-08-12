@@ -1,27 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
+import {KeeperCompatibleInterface} from "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/interfaces/draft-IERC2612.sol";
-import "@openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
-import "@openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Multicall.sol";
-import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC2612} from "@openzeppelin/contracts/interfaces/draft-IERC2612.sol";
+import {IERC3156FlashBorrower} from "@openzeppelin/contracts/interfaces/IERC3156FlashBorrower.sol";
+import {IERC3156FlashLender} from "@openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Multicall} from "@openzeppelin/contracts/utils/Multicall.sol";
+import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 
 
 import "./DataProvider.sol";
 import "./interfaces/IPriceOracle.sol";
 import "./interfaces/INative.sol";
 
-contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Multicall, KeeperCompatibleInterface, IERC3156FlashLender {
+contract Demu is
+DataProvider,
+ERC20("DEMU", "DEMU"),
+ERC20Permit("DEMU"),
+Multicall,
+KeeperCompatibleInterface,
+IERC3156FlashLender
+{
+    using Address for address;
     using SafeERC20 for IERC20;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
@@ -40,13 +49,13 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         address liquidator;
     }
 
-    constructor(
+    function initialize(
         address oracle_,
         address collector_,
         address[] memory assets_
-    )
-    DataProvider(oracle_, collector_, assets_)
-    {}
+    ) public initializer {
+        init_data_provider(oracle_, collector_, assets_);
+    }
 
     function supplied(address account, address asset)
         public
@@ -245,7 +254,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
                     assets: assets[i],
                     liquidator: liquidators[i]
                 });
-                address(this).delegatecall(abi.encodeWithSignature("liquidate(address,address[],address)", params));
+                Address.functionDelegateCall(address(this), abi.encodeWithSignature("liquidate(address,address[],address)", params));
             }
         }
     }
@@ -314,6 +323,16 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
         return amount;
     }
 
+    function flashMint(IERC3156FlashBorrower receiver, uint256 amount, bytes calldata data) external returns (bool) {
+        _mint(address(receiver), amount);
+        require(
+            receiver.onFlashLoan(_msgSender(), address(this), amount, 0, data) == keccak256("ERC3156FlashBorrower.onFlashLoan"),
+            "FlashMinter: Callback failed"
+        );
+        _burn(address(receiver), amount);
+        return true;
+    }
+
     function maxFlashLoan(address token) external override view returns (uint256) {
         return IERC20(token).balanceOf(address(this));
     }
@@ -335,7 +354,7 @@ contract Demu is DataProvider, ERC20("DEMU", "DEMU"), ERC20Permit("DEMU"),  Mult
             "FlashLender: Transfer failed"
         );
         require(
-            receiver.onFlashLoan(msg.sender, token, amount, fee, data) == keccak256("ERC3156FlashBorrower.onFlashLoan"),
+            receiver.onFlashLoan(_msgSender(), token, amount, fee, data) == keccak256("ERC3156FlashBorrower.onFlashLoan"),
             "FlashLender: Callback failed"
         );
         require(

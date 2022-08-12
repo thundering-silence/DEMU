@@ -46,13 +46,22 @@ While developing DEMU I learned more about EIP2612's specifications as well as b
 
 ## What's next for DEMU
 
-- Allowing for additional collaterals
-- Allowing for yield bearing assets to be used as collateral
+Purely DEMU
+- Allow more tokens to be used as collateral (very simple as long as supported by Chainlink Data Feeds)
+- Allowing for yield bearing assets to be used as collateral (aTokens)
+- Deploy on other chains
+- Decentralize governance
+- Find ways to protect liquidators against frontrunners (flashbots protect | whitelisted liquidators)
+
+Requires LP on Dexes
 - Implement non-liquidating self-repaying loans (Alchemix style) with minimal interest rate
-- Allow for repaying the loan directly by using the collateral (flash repay)
-- Allow for flash collateral swapping
-- Implement folding capabilities in order to multiply exposure to an asset
-- Possibly expand the variety of stablecoins to other widely used currencies - GBP, JPY, etc
-- Find ways to protect liquidators against frontrunners & MEV
-- Integrate with stableswaps or create a FX-only DEX with extremely low slippage
-- Possibly release a NFT collection giving access to revenue sharing (yield bearing NFT)
+- Allow for repaying the loan directly by using collateral (flash repay)
+- Develop flash collateral swaps contract + UI
+- Implement folding capabilities in order to increase exposure to an asset
+
+DEMU's codebase can also be used to
+- Implement the creation of synthetic assets (can be pegged to a single asset or an index)
+- Expand the variety of mintable stables to other fiat widely used in FX (GBP, JPY, ...)
+
+Extras
+-Create a FX-only DEX with extremely low slippage

@@ -2,9 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-contract DataProvider is Ownable {
+contract DataProvider is Initializable, Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     address internal _priceOracle;
@@ -23,11 +25,11 @@ contract DataProvider is Ownable {
     event NewAsset(address asset);
     event AssetRemoved(address asset);
 
-    constructor(
+    function init_data_provider(
         address oracle_,
         address collector_,
         address[] memory assets_
-    ) {
+    ) public onlyInitializing {
         _priceOracle = oracle_;
         _feesCollector = collector_;
         uint256 loops = assets_.length;
