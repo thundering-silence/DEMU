@@ -48,9 +48,10 @@ While developing DEMU I learned more about EIP2612's specifications as well as b
 
 - Allowing for additional collaterals
 - Allowing for yield bearing assets to be used as collateral
-- Implement self-repaying loans
+- Implement non-liquidating self-repaying loans (Alchemix style)
 - Allow for repaying the loan directly by using the collateral (flash repay)
 - Implement folding capabilities in order to multiply exposure to an asset
 - Possibly expand the variety of stablecoins to other widely used currencies - GBP, JPY, etc
 - Find ways to protect liquidators against MEV
+- Integrate with stableswaps or create a FX-only DEX with extremely low slippage
 - Possibly release a NFT collection giving access to revenue sharing (yield bearing NFT)
