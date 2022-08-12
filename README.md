@@ -14,19 +14,23 @@ Finally, among the handful of EURO-pegged stablecoins, all charge a fee for exis
 
 ## What it does
 
-The Decentralized European Monetary Unit protocol allows users to mint a EURO-pegged stablecoin by depositing collateral.
-
-Users holding any of the supported collaterals can supply such assets to the protocol and mint DEMU at varying LTVs completely for free (except for gas).
+The Decentralized European Monetary Unit protocol allows users to mint DEMU, a EURO-pegged stablecoin.
+Users holding any of the supported collaterals can supply such assets to the protocol and mint DEMU completely for free (except for gas).
 Once they wish to withdraw their deposited assets, all they have to do is burn enough DEMU to unlock their collateral and withdraw it.
+If the collateral value were to drop below the liquidation threshold, it would be possible for anyone to repay the excess amount on behalf of the 'underwater' account and claim a portion of the collateral.
 
-If the collateral value was to drop below the liquidation threshold, it would be possible for anyone to repay the excess amount on behalf of the 'underwater' account and claim a portion of the collateral.
+The vault implements EIP3156 allowing for flash loans of collateralized assets and flash minting of DEMU for free.
+In addition the vault implements EIP2612 allowing for a better UX on dapps.
+
+The protocol integrates two services from Chainlink:
+- All price data is pulled from their Data Feeds
+- The automated liquidation system is built on top of their Keepers network
 
 All the price data is pulled from Chainlink Data Feeds.
 
 ## How we built it
 
 The protocol revolves around a handful of contracts:
-
 - _DEMU.sol_: a ERC20 token and vault holding collateral
 - _PriceOracle.sol_: a contract capable of pulling data from Chainlinks's aggregators
 
@@ -47,16 +51,16 @@ While developing DEMU I learned more about EIP2612's specifications as well as b
 ## What's next for DEMU
 
 Purely DEMU
-- Allow more tokens to be used as collateral (very simple as long as supported by Chainlink Data Feeds)
-- Allowing for yield bearing assets to be used as collateral
+- Expand supported collaterals to other tokens (very simple as long as supported by Chainlink Data Feeds)
+- Enable using yield bearing assets as collateral (simple as long as they are pegged to the underlying)
 - Deploy on other chains
-- Decentralize governance
-- Revenue sharing to Governance token Holders
+- Decentralized governance
+- Revenue sharing system via time locked staking
 - Find ways to protect liquidators against frontrunners (flashbots protect | whitelisted liquidators)
 
 Requires LP on Dexes
 - Implement non-liquidating self-repaying loans (Alchemix style) with minimal interest rate
-- Allow for repaying the loan directly by using collateral (flash repay)
+- Allow for repaying loans directly by using collateral (flash repay)
 - Develop flash collateral swaps contract + UI
 - Implement folding capabilities in order to increase exposure to an asset
 
