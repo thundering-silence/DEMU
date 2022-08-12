@@ -38,7 +38,7 @@ Designing the inner workings of such a protocol has been quite the challenge and
 
 ## Accomplishments we are proud of
 
-I am quite proud of having built this protocol by myself in a few days. It has been fun to imagine and release something that - albeit only on the surface and with an exetremely limited set of features - resembles DAI.
+I am quite proud of having built this protocol by myself in a few days. It has been fun to imagine and build something that - albeit only on the surface and with an exetremely limited set of features - resembles DAI.
 
 ## What we learned
 
@@ -49,8 +49,8 @@ While developing DEMU I learned more about EIP2612's specifications as well as b
 - Allowing for additional collaterals
 - Allowing for yield bearing assets to be used as collateral
 - Implement self-repaying loans
-- Allow for repaying the loan directly by using the collateral
+- Allow for repaying the loan directly by using the collateral (flash repay)
 - Implement folding capabilities in order to multiply exposure to an asset
-- Implement whitelistsing for liquidation calls in order to avoid MEV attacks
-- Release a NFT collection giving access to governance (hence becoming a DAO), revenue sharing and liquidations.
 - Possibly expand the variety of stablecoins to other widely used currencies - GBP, JPY, etc
+- Find ways to protect liquidators against MEV
+- Possibly release a NFT collection giving access to revenue sharing (yield bearing NFT)
