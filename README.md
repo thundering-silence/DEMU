@@ -19,7 +19,7 @@ The Decentralized European Monetary Unit protocol allows users to mint a EURO-pe
 Users holding any of the supported collaterals can supply such assets to the protocol and mint DEMU at varying LTVs completely for free (except for gas).
 Once they wish to withdraw their deposited assets, all they have to do is burn enough DEMU to unlock their collateral and withdraw it.
 
-If the collateral value was to drop below the liquidation threshold,it would be possible for anyone to repay the excess amount on behalf of the 'underwater' account and claim a portion of the collateral backing the excess.
+If the collateral value was to drop below the liquidation threshold, it would be possible for anyone to repay the excess amount on behalf of the 'underwater' account and claim a portion of the collateral.
 
 All the price data is pulled from Chainlink Data Feeds.
 
