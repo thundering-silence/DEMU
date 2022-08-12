@@ -48,9 +48,10 @@ While developing DEMU I learned more about EIP2612's specifications as well as b
 
 Purely DEMU
 - Allow more tokens to be used as collateral (very simple as long as supported by Chainlink Data Feeds)
-- Allowing for yield bearing assets to be used as collateral (aTokens)
+- Allowing for yield bearing assets to be used as collateral
 - Deploy on other chains
 - Decentralize governance
+- Revenue sharing to Governance token Holders
 - Find ways to protect liquidators against frontrunners (flashbots protect | whitelisted liquidators)
 
 Requires LP on Dexes
