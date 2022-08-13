@@ -1,6 +1,6 @@
-# DEMU - Decentralized European Monetary Unit
+# DEMU - Decentralized Monetary Unit Protocol
 
-## Zero-cost asset-backed over-collateralized EURO stablecoin
+## Zero-cost asset-backed over-collateralized stablecoins
 
 ## Inspiration
 
@@ -8,9 +8,9 @@ The market of stablecoins is currently dominated by USD pegged tokens which have
 The problem is that whoever holds USD-pegged assets but doesn't live in an USD based economy is exposed to Forex risk.
 It is hence important to develop and foster the adoption of stablecoins pegged to other FIAT currencies.
 
-The Forex market in tradFi is currently worth trillions of dollars and is currently highly undervalued by web3 as we can assume by the lack of existence and adoption of non usd-pegged stablecoins.
+The Forex market in tradFi is currently worth trillions of dollars and is currently highly undervalued by web3 as we can conclude by the lack of variety & adoption of non usd-pegged stablecoins.
 
-Finally, among the handful of EURO-pegged stablecoins, all charge a fee for existing - some through minting fees, others through interest rates - and this definitely doesn't help with adoption.
+DEMU, the Decentralised European Monetary Unit, differs from other EURO-pegged stablecoins because it is completely free to mint - most charge interest during the lifetime of the loan or expect a upfront fee when depositing.
 
 ## What it does
 
@@ -23,6 +23,7 @@ The vault implements EIP3156 allowing for flash loans of collateralized assets a
 In addition the vault implements EIP2612 allowing for a better UX on dapps.
 
 The protocol integrates two services from Chainlink:
+
 - All price data is pulled from their Data Feeds
 - The automated liquidation system is built on top of their Keepers network
 
@@ -31,6 +32,7 @@ All the price data is pulled from Chainlink Data Feeds.
 ## How we built it
 
 The protocol revolves around a handful of contracts:
+
 - _DEMU.sol_: a ERC20 token and vault holding collateral
 - _PriceOracle.sol_: a contract capable of pulling data from Chainlinks's aggregators
 
@@ -51,8 +53,9 @@ While developing DEMU I learned more about EIP2612's specifications as well as b
 ## What's next for DEMU
 
 Purely DEMU
+
 - Expand supported collaterals to other tokens (very simple as long as supported by Chainlink Data Feeds)
-- Enable using yield bearing assets as collateral (simple as long as they are pegged to the underlying)
+- Allow using yield bearing assets like Aave's aTokens and others as collateral (very simple as long as they are pegged to the underlying)
 - Deploy on other EVM chains
 - Decentralized governance
 - Revenue sharing system via time locked staking
@@ -60,13 +63,15 @@ Purely DEMU
 - Develop flash collateral swaps contract + UI
 
 Requires LPs on Dexes
+
 - Implement non-liquidating self-repaying loans (Alchemix style) with minimal interest rate
 - Allow for repaying loans directly by using collateral (flash repay)
 - Implement folding capabilities in order to increase exposure to an asset
 
 DEMU's codebase can also be used to
-- Implement the creation of synthetic assets (can be pegged to a single asset or an index)
-- Expand the variety of mintable stables to other fiat widely used in FX (GBP, JPY, ...)
+
+- Expand the variety of mintable stables to other currencies widely used in FX (GBP, JPY, ...)
+- Implement the creation of other synthetic assets either pegged to a single asset or to a basket of assets (index)
 
 Extras
--Create a FX-only DEX with extremely low slippage
+-Create a FX-only DEX with extremely low fees & slippage
