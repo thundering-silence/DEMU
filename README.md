@@ -61,6 +61,7 @@ Purely DEMU
 - Find ways to protect liquidators against frontrunners (flashbots protect or whitelisted liquidators or other)
 - Decentralized governance (when system is big enough)
 - Add utility to governance token (required to access specific features maybe?)
+- Get audited
 
 Requires LPs on Dexes
 
