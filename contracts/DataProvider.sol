@@ -6,7 +6,7 @@ import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.s
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-contract DataProvider is Initializable, Ownable {
+contract DataProvider is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     address internal _priceOracle;
@@ -25,11 +25,11 @@ contract DataProvider is Initializable, Ownable {
     event NewAsset(address asset);
     event AssetRemoved(address asset);
 
-    function init_data_provider(
+    constructor(
         address oracle_,
         address collector_,
         address[] memory assets_
-    ) public onlyInitializing {
+    ) {
         _priceOracle = oracle_;
         _feesCollector = collector_;
         uint256 loops = assets_.length;

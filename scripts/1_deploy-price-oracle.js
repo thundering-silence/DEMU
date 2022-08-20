@@ -6,7 +6,45 @@
 const hre = require("hardhat");
 require("dotenv").config();
 
-const supportedAssets = ["WMATIC", "WBTC", "WETH", "DAI", "USDC", "LINK"];
+const supportedAssets = [
+  process.env.WMATIC,
+  process.env.WBTC,
+  process.env.WETH,
+  process.env.AAVE,
+  process.env.AVAX,
+  process.env.BNB,
+  process.env.COMP,
+  process.env.GRT,
+  process.env.LINK,
+  process.env.MKR,
+  process.env.amAAVE,
+  process.env.amDAI,
+  process.env.amUSDC,
+  process.env.amUSDT,
+  process.env.amWBTC,
+  process.env.amWETH,
+  process.env.amWMATIC,
+];
+
+const aggregators = [
+  process.env.WMATIC_AGGREGATOR,
+  process.env.WBTC_AGGREGATOR,
+  process.env.WETH_AGGREGATOR,
+  process.env.AAVE_AGGREGATOR,
+  process.env.AVAX_AGGREGATOR,
+  process.env.BNB_AGGREGATOR,
+  process.env.COMP_AGGREGATOR,
+  process.env.GRT_AGGREGATOR,
+  process.env.LINK_AGGREGATOR,
+  process.env.MKR_AGGREGATOR,
+  process.env.AAVE_AGGREGATOR,
+  process.env.DAI_AGGREGATOR,
+  process.env.USDC_AGGREGATOR,
+  process.env.USDT_AGGREGATOR,
+  process.env.WBTC_AGGREGATOR,
+  process.env.WETH_AGGREGATOR,
+  process.env.WMATIC_AGGREGATOR,
+];
 
 async function main() {
   const Oracle = await hre.ethers.getContractFactory("PriceOracle");
@@ -14,11 +52,8 @@ async function main() {
   await oracle.deployed();
   await Promise.all(
     supportedAssets.map(
-      async (asset) =>
-        await oracle.setAggregatorForAsset(
-          process.env[asset],
-          process.env[`${asset}_AGGREGATOR`]
-        )
+      async (asset, idx) =>
+        await oracle.setAggregatorForAsset(asset, aggregators[idx])
     )
   );
   await oracle.setEURUSDAggregator(process.env.EUR_USD_AGGREGATOR);

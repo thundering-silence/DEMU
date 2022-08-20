@@ -22,6 +22,8 @@ import "./DataProvider.sol";
 import "./interfaces/IPriceOracle.sol";
 import "./interfaces/INative.sol";
 
+import "hardhat/console.sol";
+
 contract Demu is
 DataProvider,
 ERC20("DEMU", "DEMU"),
@@ -49,12 +51,11 @@ IERC3156FlashLender
         address liquidator;
     }
 
-    function initialize(
+    constructor(
         address oracle_,
         address collector_,
         address[] memory assets_
-    ) public initializer {
-        init_data_provider(oracle_, collector_, assets_);
+    ) DataProvider(oracle_, collector_, assets_) {
     }
 
     function supplied(address account, address asset)
@@ -138,6 +139,7 @@ IERC3156FlashLender
 
     function supplyNative() public payable {
         address account = _msgSender();
+        console.log("hello");
         INATIVE(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270).deposit{value: msg.value}();
         _supply(account, 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270, msg.value);
     }
@@ -228,6 +230,7 @@ IERC3156FlashLender
                 uint256 minExcess = debtCeil / 20; // excess needs to be at least 5% of maxDebt
                 uint256 excessValue = current - debtCeil;
                 if (excessValue >= minExcess) {
+                  upkeepNeeded = true;
                   dos[i] = true;
                   accounts[i] = account;
                   assets[i] = supported;
@@ -254,17 +257,24 @@ IERC3156FlashLender
                     assets: assets[i],
                     liquidator: liquidators[i]
                 });
-                Address.functionDelegateCall(address(this), abi.encodeWithSignature("liquidate(address,address[],address)", params));
+                Address.functionDelegateCall(
+                    address(this),
+                    abi.encodeWithSignature(
+                        "liquidate((address,address[],address))",
+                        params
+                    )
+                );
             }
         }
     }
 
     function liquidate(LiquidationParams memory params) public {
-        uint256 debtCeil = maxDebt(params.account);
         uint256 current = currentDebt(params.account);
+        uint256 debtCeil = maxDebt(params.account);
         require(current > debtCeil, "DEMU: Cannot liquidate account");
 
-        uint256 excessValue = current - debtCeil;
+        uint denominator = bpsDenominator();
+        uint256 excessValue = current - maxMintable(params.account);
         uint256 excessAmount = excessValue / demuPrice();
         _burn(params.liquidator, excessAmount);
         uint256 loops = params.assets.length;
@@ -274,28 +284,33 @@ IERC3156FlashLender
                 break;
             }
             address asset = params.assets[i];
+            uint valueToSell = excessValue * (
+                _conf[asset].liquidationIncentive + _conf[asset].protocolCut + denominator
+                ) / denominator;
+
             uint256 suppliedAmount = supplied(params.account, asset);
             uint256 collateralPrice = IPriceOracle(oracle())
                 .getAssetPriceEUR(asset);
             uint256 collateralValue = (suppliedAmount * collateralPrice) / 1e18;
-            uint256 collateralAmount;
-            uint sumOfLiqPenalties = _conf[asset].liquidationIncentive + _conf[asset].protocolCut + bpsDenominator();
-            if (collateralValue < ((excessValue * sumOfLiqPenalties) / bpsDenominator())) {
-                collateralAmount = suppliedAmount;
+
+            uint256 collateralAmountToSell;
+            if (collateralValue < valueToSell) {
+                collateralAmountToSell = suppliedAmount;
             } else {
-                collateralAmount = excessValue / collateralPrice;
-                collateralValue = (collateralAmount * collateralPrice) / 1e18;
+                collateralAmountToSell = excessValue / collateralPrice;
+                collateralValue = (collateralAmountToSell * collateralPrice) / 1e18;
             }
+
             IERC20(asset).safeTransfer(
                 params.liquidator,
-                (collateralAmount * (bpsDenominator() + _conf[asset].liquidationIncentive)) / sumOfLiqPenalties
+                (collateralAmountToSell * (denominator + _conf[asset].liquidationIncentive) / denominator)
             );
             IERC20(asset).safeTransfer(
                 feesCollector(),
-                (collateralAmount * _conf[asset].protocolCut) / sumOfLiqPenalties
+                collateralAmountToSell * _conf[asset].protocolCut / denominator
             );
             excessValue -= collateralValue;
-            emit Liquidate(params.liquidator, params.account, asset, collateralAmount);
+            emit Liquidate(params.liquidator, params.account, asset, collateralAmountToSell);
         }
     }
 
